@@ -29,6 +29,11 @@ export class DialogueBox {
   private revealed = 0;
   private time = 0;
   private onDone: (() => void) | null = null;
+  /** Seconds to wait on a fully shown page before moving on by itself, or null to wait for a key. */
+  private autoAdvance: number | null = null;
+  private idle = 0;
+  /** Keep the last page on screen after it finishes (e.g. a prompt above a menu). */
+  private hold = false;
   private frameTexture: Texture;
 
   constructor() {
@@ -46,11 +51,27 @@ export class DialogueBox {
   }
 
   get active(): boolean {
-    return this.root.visible;
+    return this.root.visible && !(this.hold && this.revealed >= this.pageLength() && this.page === this.pages.length - 1);
+  }
+
+  /** Hide the box, e.g. when a held prompt is no longer needed. */
+  hide(): void {
+    this.root.visible = false;
+    this.hold = false;
+    this.onDone = null;
+    this.setSpeaker(undefined);
   }
 
   /** Show a conversation. Each entry is a paragraph; long ones span several pages. */
-  show(paragraphs: string[], speaker?: string, onDone?: () => void): void {
+  show(
+    paragraphs: string[],
+    speaker?: string,
+    onDone?: () => void,
+    options: { autoAdvance?: number; hold?: boolean } = {},
+  ): void {
+    this.autoAdvance = options.autoAdvance ?? null;
+    this.hold = options.hold ?? false;
+    this.idle = 0;
     this.pages = [];
     for (const p of paragraphs) {
       const lines = wrapText(p, BOX_W - PAD_X * 2);
@@ -64,11 +85,23 @@ export class DialogueBox {
   }
 
   update(dt: number, input: Input): void {
-    if (!this.active) return;
+    if (!this.root.visible) return;
     this.time += dt;
     const total = this.pageLength();
     const done = this.revealed >= total;
-    if (input.wasPressed('confirm') || input.wasPressed('cancel')) {
+    if (this.hold && done && this.page === this.pages.length - 1) {
+      this.arrow.visible = false;
+      if (this.onDone) {
+        const callback = this.onDone;
+        this.onDone = null;
+        callback();
+      }
+      return;
+    }
+    if (done) this.idle += dt;
+    const timedOut = this.autoAdvance !== null && done && this.idle >= this.autoAdvance;
+    if (timedOut || input.wasPressed('confirm') || input.wasPressed('cancel')) {
+      this.idle = 0;
       if (!done) {
         this.revealed = total;
       } else if (this.page < this.pages.length - 1) {
