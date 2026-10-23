@@ -1,4 +1,5 @@
 import { Container, Sprite } from 'pixi.js';
+import { audio } from '../audio';
 import type { Input } from '../engine/Input';
 import { textSprite } from '../gen/font';
 import { PALETTE } from '../gen/palette';
@@ -53,6 +54,7 @@ export class ChoiceMenu {
     if (input.wasPressed('down')) this.move(1, n);
     if (input.wasPressed('confirm')) this.pick(this.cursor);
     else if (input.wasPressed('cancel') && this.onCancel) {
+      audio.sfx('cancel');
       const cancel = this.onCancel;
       this.close();
       cancel();
@@ -61,12 +63,14 @@ export class ChoiceMenu {
 
   private move(delta: number, n: number): void {
     this.cursor = (this.cursor + delta + n) % n;
+    audio.sfx('cursor');
     this.render();
   }
 
   private pick(i: number): void {
     const choice = this.choices[i];
     if (!choice || choice.enabled === false) return;
+    audio.sfx('confirm');
     this.close();
     choice.onPick();
   }

@@ -1,3 +1,4 @@
+import { audio } from '../audio';
 import { POTION_HEAL } from '../battle/Battle';
 import { createMonster, gainXp, statsOf, xpForLevel } from '../battle/monster';
 import { MOVES } from '../data/moves';
@@ -158,6 +159,7 @@ async function trainer(host: ScriptHost, speaker: string, t: TrainerBattle, rng:
   }
   host.flags[t.flag] = true;
   host.state.coins += t.coins;
+  audio.sfx('coin');
   await host.say(t.afterWin, speaker);
   await host.say([`You earned ${t.coins} coins!`]);
   if (t.reward) await rewardPick(host, rng);
@@ -311,12 +313,14 @@ export const NPC_SCRIPTS: Record<string, (host: ScriptHost, npc: NpcDef) => Prom
     if (host.state.party.length === 0) return host.say(npc.lines, npc.name);
     await host.say(['Welcome to the Monster Hospital!', "Let me heal your monsters. Just a moment..."], npc.name);
     host.healParty();
+    await host.jingle('heal');
     await host.say(['Your monsters are fully healed! Come back anytime.'], npc.name);
   },
 
   async mom(host, npc) {
     if (host.state.party.length === 0) return host.say(npc.lines, npc.name);
     host.healParty();
+    await host.jingle('heal');
     await host.say(['You look tired! Have a rest.', 'Your monsters are fully healed.'], npc.name);
   },
 
@@ -337,6 +341,7 @@ export const NPC_SCRIPTS: Record<string, (host: ScriptHost, npc: NpcDef) => Prom
           continue;
         }
         host.state.coins -= price;
+        audio.sfx('coin');
         inv[item]++;
         await host.say([`Here you go! You now have ${inv[item]} ${item === 'catchOrb' ? 'Catch Orbs' : 'Potions'}.`], npc.name);
         continue;
