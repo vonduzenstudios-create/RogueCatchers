@@ -13,7 +13,7 @@ npm run build    # production build in dist/
 
 Open `/gallery.html` (locally or on the live site) to see every generated monster, tile, building and character.
 
-Controls: arrows or WASD to move, Enter/Space/Z to confirm, Esc/X to go back.
+Controls: arrows or WASD to move, Enter/Space/Z to confirm or talk, Esc/X/Tab for the menu (or to go back). Menus also work with the mouse.
 
 ## Layout
 

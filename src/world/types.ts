@@ -1,3 +1,4 @@
+import type { SpeciesId } from '../data/species';
 import type { BuildingKind } from '../gen/buildings';
 import type { Facing, Outfit } from '../gen/characters';
 import type { TileKind } from '../gen/tiles';
@@ -32,6 +33,26 @@ export interface NpcDef {
   y: number;
   facing: Facing;
   lines: string[];
+  /** Only present once this story flag is set. */
+  shownWhen?: string;
+  /** Gone once this story flag is set. */
+  hiddenWhen?: string;
+}
+
+/** A tile you can't pass until a story flag is set; you're told why and stepped back. */
+export interface Gate {
+  x: number;
+  y: number;
+  flag: string;
+  speaker?: string;
+  lines: string[];
+}
+
+export interface EncounterSlot {
+  species: SpeciesId;
+  weight: number;
+  minLevel: number;
+  maxLevel: number;
 }
 
 export interface Warp {
@@ -60,4 +81,7 @@ export interface MapData {
   npcs: NpcDef[];
   signs: SignDef[];
   warps: Warp[];
+  gates: Gate[];
+  /** Wild monsters found in this map's tall grass. */
+  encounters: EncounterSlot[];
 }

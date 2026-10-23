@@ -1,7 +1,7 @@
 import { type BuildingKind, buildingSize } from '../gen/buildings';
 import type { Facing } from '../gen/characters';
 import type { TileKind } from '../gen/tiles';
-import type { MapData, MapId, NpcDef, PlacedBuilding, SignDef, Warp } from './types';
+import type { EncounterSlot, Gate, MapData, MapId, NpcDef, PlacedBuilding, SignDef, Warp } from './types';
 
 /** A door that leads into an interior map, connected up by `linkDoors`. */
 export interface Door {
@@ -21,6 +21,8 @@ export class MapBuilder {
   private npcs: NpcDef[] = [];
   private signs: SignDef[] = [];
   private warps: Warp[] = [];
+  private gates: Gate[] = [];
+  private encounters: EncounterSlot[] = [];
   readonly doors: Door[] = [];
 
   constructor(
@@ -81,6 +83,16 @@ export class MapBuilder {
     return this;
   }
 
+  gate(gate: Gate): this {
+    this.gates.push(gate);
+    return this;
+  }
+
+  wild(slots: EncounterSlot[]): this {
+    this.encounters = slots;
+    return this;
+  }
+
   build(): MapData {
     return {
       id: this.id,
@@ -93,6 +105,8 @@ export class MapBuilder {
       npcs: this.npcs,
       signs: this.signs,
       warps: this.warps,
+      gates: this.gates,
+      encounters: this.encounters,
     };
   }
 }

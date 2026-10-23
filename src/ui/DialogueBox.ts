@@ -34,6 +34,8 @@ export class DialogueBox {
   private idle = 0;
   /** Keep the last page on screen after it finishes (e.g. a prompt above a menu). */
   private hold = false;
+  /** A held prompt has finished typing and handed over to whatever comes next. */
+  private holdFired = false;
   private frameTexture: Texture;
 
   constructor() {
@@ -50,14 +52,16 @@ export class DialogueBox {
     this.root.visible = false;
   }
 
+  /** True while the box needs updates: typing, waiting for a key, or about to hand over to a held menu. */
   get active(): boolean {
-    return this.root.visible && !(this.hold && this.revealed >= this.pageLength() && this.page === this.pages.length - 1);
+    return this.root.visible && !this.holdFired;
   }
 
   /** Hide the box, e.g. when a held prompt is no longer needed. */
   hide(): void {
     this.root.visible = false;
     this.hold = false;
+    this.holdFired = false;
     this.onDone = null;
     this.setSpeaker(undefined);
   }
@@ -71,6 +75,7 @@ export class DialogueBox {
   ): void {
     this.autoAdvance = options.autoAdvance ?? null;
     this.hold = options.hold ?? false;
+    this.holdFired = false;
     this.idle = 0;
     this.pages = [];
     for (const p of paragraphs) {
@@ -91,6 +96,8 @@ export class DialogueBox {
     const done = this.revealed >= total;
     if (this.hold && done && this.page === this.pages.length - 1) {
       this.arrow.visible = false;
+      this.updateMask();
+      this.holdFired = true;
       if (this.onDone) {
         const callback = this.onDone;
         this.onDone = null;

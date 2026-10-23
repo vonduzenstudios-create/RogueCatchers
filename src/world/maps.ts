@@ -56,6 +56,16 @@ function emberHollow(): MapBuilder {
     lines: ["Nothing's biting today.", 'I once saw a Glimshade on Mossway Trail at dusk. Gave me chills!'],
   });
 
+  for (const x of [11, 12]) {
+    m.gate({
+      x,
+      y: 2,
+      flag: 'beatRivalLab',
+      speaker: 'Prof. Alder',
+      lines: ["Wait! Tall grass is full of wild monsters.", 'Come to my lab first, east of here!'],
+    });
+  }
+
   m.warp(11, 0, 'mosswayTrail', 9, 42, 'up');
   m.warp(12, 0, 'mosswayTrail', 10, 42, 'up');
   return m;
@@ -87,6 +97,13 @@ function mosswayTrail(): MapBuilder {
   m.rect(11, 14, 1, 6, 'fence');
   for (const [x, y] of [[13, 31], [7, 37], [2, 31], [16, 22], [7, 16], [12, 3]]) m.set(x, y, 'flowers');
 
+  m.wild([
+    { species: 'zapkit', weight: 30, minLevel: 2, maxLevel: 5 },
+    { species: 'brambun', weight: 30, minLevel: 2, maxLevel: 5 },
+    { species: 'puddlop', weight: 20, minLevel: 3, maxLevel: 5 },
+    { species: 'pebblet', weight: 14, minLevel: 3, maxLevel: 6 },
+    { species: 'glimshade', weight: 6, minLevel: 4, maxLevel: 6 },
+  ]);
   m.sign(11, 41, 'MOSSWAY TRAIL. North: Basalt Ridge. Tall grass hides wild monsters!');
 
   m.npc({
@@ -212,6 +229,7 @@ function lab(): MapBuilder {
     y: 5,
     facing: 'right',
     lines: ["Hey, I'm Kael. The Professor said I get a monster too.", "Whatever you pick, I'll pick something better!"],
+    hiddenWhen: 'beatRivalLab',
   });
   return m;
 }
