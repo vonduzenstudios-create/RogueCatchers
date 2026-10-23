@@ -41,6 +41,7 @@ export class Game {
     this.setScene(first(this));
     this.app.ticker.add((ticker) => {
       const dt = Math.min(ticker.deltaMS / 1000, MAX_DT);
+      this.state.stats.playSeconds += dt;
       this.scene?.update(dt);
       this.input.endFrame();
     });

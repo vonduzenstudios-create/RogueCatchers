@@ -1,5 +1,5 @@
 import { POTION_HEAL } from '../battle/Battle';
-import { createMonster, statsOf } from '../battle/monster';
+import { createMonster, gainXp, statsOf, xpForLevel } from '../battle/monster';
 import { MOVES } from '../data/moves';
 import { SPECIES } from '../data/species';
 import type { SpeciesId } from '../data/species';
@@ -62,7 +62,222 @@ async function rivalLabBattle(host: ScriptHost): Promise<void> {
   }
 }
 
+// ---- Rewards ---------------------------------------------------------------
+
+interface Reward {
+  label: string;
+  give: (host: ScriptHost) => string;
+}
+
+const REWARDS: Reward[] = [
+  { label: '3 Catch Orbs', give: (h) => ((h.state.inventory.catchOrb += 3), 'You got 3 Catch Orbs!') },
+  { label: '2 Potions', give: (h) => ((h.state.inventory.potion += 2), 'You got 2 Potions!') },
+  { label: '60 coins', give: (h) => ((h.state.coins += 60), 'You got 60 coins!') },
+  {
+    label: 'Training Snack',
+    give: (h) => {
+      const lead = h.state.party[0];
+      gainXp(lead, xpForLevel(lead.level + 1) - lead.xp);
+      return `${monsterName(lead.species)} ate the snack and grew to level ${lead.level}!`;
+    },
+  },
+  { label: 'Full heal', give: (h) => (h.healParty(), 'Your monsters were fully healed!') },
+];
+
+/** The roguelike touch: after a big win, choose one of three random rewards. */
+export async function rewardPick(host: ScriptHost, rng: Rng): Promise<void> {
+  const pool = [...REWARDS];
+  const offer: Reward[] = [];
+  while (offer.length < 3) offer.push(pool.splice(rng.int(0, pool.length - 1), 1)[0]);
+  let pick = -1;
+  while (pick < 0) pick = await host.choose('Choose a reward!', offer.map((r) => r.label));
+  await host.say([offer[pick].give(host)]);
+}
+
+// ---- Trainer battles ---------------------------------------------------------
+
+type Team = [SpeciesId, number][];
+
+/** Every trainer's team, in one place so the difficulty curve can be tested. */
+export const TRAINER_TEAMS = {
+  wren: [
+    ['brambun', 5],
+    ['zapkit', 6],
+  ] as Team,
+  moss: [
+    ['pebblet', 7],
+    ['puddlop', 7],
+  ] as Team,
+  rivalRoute: (theirs: SpeciesId): Team => [
+    ['zapkit', 7],
+    [theirs, 9],
+  ],
+  flint: [
+    ['pebblet', 8],
+    ['pebblet', 9],
+  ] as Team,
+  basalt: [
+    ['pebblet', 10],
+    ['cragmaw', 11],
+  ] as Team,
+};
+
+interface TrainerBattle {
+  flag: string;
+  trainerName: string;
+  team: Team;
+  coins: number;
+  before: string[];
+  afterWin: string[];
+  /** What they say once beaten. */
+  beaten: string[];
+  arena: 'grass' | 'indoor' | 'gym';
+  reward?: boolean;
+}
+
+/** Talk to a trainer: battle once, then they just chat. */
+async function trainer(host: ScriptHost, speaker: string, t: TrainerBattle, rng: Rng): Promise<boolean> {
+  if (host.flags[t.flag]) {
+    await host.say(t.beaten, speaker);
+    return true;
+  }
+  if (!host.state.party.some((m) => m.hp > 0)) {
+    await host.say(['Your monsters are too tired to battle. Heal them first!']);
+    return false;
+  }
+  await host.say(t.before, speaker);
+  const { outcome } = await host.battle({
+    foe: t.team.map(([species, level]) => createMonster(species, level)),
+    trainerName: t.trainerName,
+    arena: t.arena,
+    onLose: 'blackout',
+  });
+  if (outcome !== 'win') {
+    await host.say(['You hurried back to safety and your monsters were healed.', 'You dropped half your coins in the rush...']);
+    return false;
+  }
+  host.flags[t.flag] = true;
+  host.state.coins += t.coins;
+  await host.say(t.afterWin, speaker);
+  await host.say([`You earned ${t.coins} coins!`]);
+  if (t.reward) await rewardPick(host, rng);
+  host.refresh();
+  return true;
+}
+
+async function rivalRoute(host: ScriptHost): Promise<void> {
+  const theirs = RIVAL_COUNTER[playerStarter(host) ?? 'embrit'];
+  await trainer(
+    host,
+    'Kael',
+    {
+      flag: 'beatRivalRoute',
+      trainerName: 'Rival Kael',
+      team: TRAINER_TEAMS.rivalRoute(theirs),
+      coins: 200,
+      before: ["I've been training on this trail all day.", "I even caught a Zapkit! Let's go!"],
+      afterWin: ['No way... beaten again?!', "Basalt Ridge's gym leader is tough. Don't embarrass yourself!"],
+      beaten: [],
+      arena: 'grass',
+      reward: true,
+    },
+    host.rng,
+  );
+}
+
+export const GATE_SCRIPTS: Record<string, (host: ScriptHost) => Promise<void>> = {
+  rivalRoute,
+};
+
 export const NPC_SCRIPTS: Record<string, (host: ScriptHost, npc: NpcDef) => Promise<void>> = {
+  'rival-route': async (host) => {
+    await rivalRoute(host);
+  },
+
+  'trainer-wren': async (host, npc) => {
+    if (!host.flags.gotStarter) return host.say(npc.lines, npc.name);
+    await trainer(
+      host,
+      npc.name,
+      {
+        flag: 'beatWren',
+        trainerName: 'Bug Catcher Wren',
+        team: TRAINER_TEAMS.wren,
+        coins: 80,
+        before: ['You look new around here. Show me what you caught!'],
+        afterWin: ['Wow, your team is strong!'],
+        beaten: ['I need to catch more monsters before we battle again.'],
+        arena: 'grass',
+      },
+      host.rng,
+    );
+  },
+
+  'trainer-moss': async (host, npc) => {
+    if (!host.flags.gotStarter) return host.say(npc.lines, npc.name);
+    await trainer(
+      host,
+      npc.name,
+      {
+        flag: 'beatMoss',
+        trainerName: 'Hiker Moss',
+        team: TRAINER_TEAMS.moss,
+        coins: 100,
+        before: ["Hiking builds strength! Let's see if battling does too!"],
+        afterWin: ['Ha! You crushed me like a pebble.'],
+        beaten: ['Basalt Ridge is just north. Its gym leader uses Stone types!', 'Bring Water or Grass moves.'],
+        arena: 'grass',
+      },
+      host.rng,
+    );
+  },
+
+  'gym-trainer': async (host, npc) => {
+    await trainer(
+      host,
+      npc.name,
+      {
+        flag: 'beatFlint',
+        trainerName: 'Climber Flint',
+        team: TRAINER_TEAMS.flint,
+        coins: 150,
+        before: ['You want to see Leader Basalt? Get past me first!'],
+        afterWin: ['You made it past me. Leader Basalt is waiting.'],
+        beaten: ["Leader Basalt's Cragmaw is the toughest rock around."],
+        arena: 'gym',
+        reward: true,
+      },
+      host.rng,
+    );
+  },
+
+  'leader-basalt': async (host, npc) => {
+    if (host.flags.badge) {
+      await host.say(['You earned that badge fair and square.', 'Keep training, and come back for a rematch someday!'], npc.name);
+      return;
+    }
+    if (!host.flags.beatFlint) {
+      await host.say(["I'm Basalt, leader of this gym.", 'Beat my student Flint first, then we can talk.'], npc.name);
+      return;
+    }
+    const won = await trainer(
+      host,
+      npc.name,
+      {
+        flag: 'badge',
+        trainerName: 'Leader Basalt',
+        team: TRAINER_TEAMS.basalt,
+        coins: 500,
+        before: ["I'm Basalt, leader of this gym.", 'My Stone monsters are as solid as the ridge itself. Show me your strength!'],
+        afterWin: ['Incredible! You broke through my defense.', 'You have earned the Basalt Badge!'],
+        beaten: [],
+        arena: 'gym',
+      },
+      host.rng,
+    );
+    if (won) await host.showEnding();
+  },
+
   async professor(host, npc) {
     const f = host.flags;
     if (!f.gotStarter) {

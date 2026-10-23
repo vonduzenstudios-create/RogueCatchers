@@ -12,7 +12,7 @@ import { drawFrame } from '../gen/ui';
 import { ChoiceMenu } from '../ui/ChoiceMenu';
 import { DialogueBox } from '../ui/DialogueBox';
 import { buildingTiles, isWalkable } from '../world/collision';
-import { NPC_SCRIPTS, pauseMenu, rollEncounter, wildBattle } from '../world/events';
+import { GATE_SCRIPTS, NPC_SCRIPTS, pauseMenu, rollEncounter, wildBattle } from '../world/events';
 import { WORLD } from '../world/maps';
 import { type WorldView, runScript } from '../world/script';
 import type { MapData, NpcDef, Warp } from '../world/types';
@@ -240,6 +240,8 @@ export class OverworldScene extends Scene implements WorldView {
     if (gate) {
       void runScript(this.game, async (host) => {
         await host.say(gate.lines, gate.speaker);
+        if (gate.script) await GATE_SCRIPTS[gate.script](host);
+        if (this.game.state.flags[gate.flag] || this.game.world !== this) return;
         // Step back the way you came.
         p.x = m.fromX;
         p.y = m.fromY;
