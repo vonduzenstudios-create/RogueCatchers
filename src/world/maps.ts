@@ -125,6 +125,21 @@ function mosswayTrail(): MapBuilder {
     lines: ['Basalt Ridge is just north of here.', "Its gym leader uses Stone types. Bring Water or Grass if you've got them!"],
   });
 
+  m.npc({
+    id: 'rival-route',
+    name: 'Kael',
+    outfit: RIVAL_OUTFIT,
+    x: 11,
+    y: 3,
+    facing: 'left',
+    lines: ["I've been training. Let's see if you have too!"],
+    shownWhen: 'beatRivalLab',
+    hiddenWhen: 'beatRivalRoute',
+  });
+  for (const x of [9, 10]) {
+    m.gate({ x, y: 2, flag: 'beatRivalRoute', speaker: 'Kael', lines: ['Hey! Not so fast!'], script: 'rivalRoute' });
+  }
+
   m.warp(9, 43, 'emberHollow', 11, 1, 'down');
   m.warp(10, 43, 'emberHollow', 12, 1, 'down');
   m.warp(9, 0, 'basaltRidge', 13, 20, 'up');
@@ -322,7 +337,7 @@ function gym(): MapBuilder {
     x: 3,
     y: 7,
     facing: 'right',
-    lines: ['You want to see Leader Basalt?', "You'll have to get past me first. Well, once battles open up!"],
+    lines: ['You want to see Leader Basalt?', "You'll have to get past me first!"],
   });
   return m;
 }

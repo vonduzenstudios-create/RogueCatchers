@@ -1,5 +1,6 @@
 import type { Inventory } from '../battle/Battle';
 import type { Monster } from '../battle/monster';
+import type { SpeciesId } from '../data/species';
 import type { Facing } from '../gen/characters';
 import { START } from '../world/maps';
 import type { MapId } from '../world/types';
@@ -16,6 +17,13 @@ export interface GameState {
   coins: number;
   /** Story progress, e.g. `gotStarter`. */
   flags: Record<string, boolean>;
+  stats: {
+    /** Species met in battle, in the order first seen. */
+    seen: SpeciesId[];
+    caught: number;
+    battlesWon: number;
+    playSeconds: number;
+  };
 }
 
 export function newGameState(): GameState {
@@ -28,5 +36,6 @@ export function newGameState(): GameState {
     inventory: { potion: 0, catchOrb: 0 },
     coins: 0,
     flags: {},
+    stats: { seen: [], caught: 0, battlesWon: 0, playSeconds: 0 },
   };
 }

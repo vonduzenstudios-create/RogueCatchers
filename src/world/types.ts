@@ -46,6 +46,8 @@ export interface Gate {
   flag: string;
   speaker?: string;
   lines: string[];
+  /** Run this story script (from GATE_SCRIPTS) after the lines; you only step back if the flag is still unset. */
+  script?: string;
 }
 
 export interface EncounterSlot {

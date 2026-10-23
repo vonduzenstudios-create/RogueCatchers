@@ -43,7 +43,7 @@ export const SPECIES: Record<SpeciesId, Species> = {
     id: 'embrit', name: 'Embrit', type: 'Fire', role: 'starter',
     description: 'A small fox whose tail tip smoulders like a coal.',
     stats: st(45, 60, 45, 65), catchRate: 45, xpYield: 62,
-    learnset: [[1, 'ember'], [1, 'growl'], [7, 'quickStep'], [11, 'flameWheel'], [16, 'fireFang']],
+    learnset: [[1, 'ember'], [1, 'growl'], [7, 'quickStep'], [9, 'shadeClaw'], [11, 'flameWheel'], [16, 'fireFang']],
   },
   splashell: {
     id: 'splashell', name: 'Splashell', type: 'Water', role: 'starter',

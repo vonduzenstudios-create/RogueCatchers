@@ -4,6 +4,7 @@ import { SPECIES, type SpeciesId } from '../data/species';
 import type { Game } from '../engine/Game';
 import type { Arena } from '../gen/battleArt';
 import { BattleScene } from '../scenes/BattleScene';
+import { EndScene } from '../scenes/EndScene';
 import { OverworldScene } from '../scenes/OverworldScene';
 import { StarterScene } from '../scenes/StarterScene';
 
@@ -42,6 +43,10 @@ export class ScriptHost {
     return this.game.state.flags;
   }
 
+  get rng() {
+    return this.game.rng;
+  }
+
   private get view(): WorldView {
     const view = this.game.world;
     if (!view) throw new Error('No overworld is active for this script');
@@ -76,6 +81,8 @@ export class ScriptHost {
   }
 
   battle(config: BattleConfig): Promise<{ outcome: Outcome; battle: Battle }> {
+    const stats = this.state.stats;
+    for (const m of config.foe) if (!stats.seen.includes(m.species)) stats.seen.push(m.species);
     const battle = new Battle({
       playerParty: this.state.party,
       foeParty: config.foe,
@@ -92,12 +99,26 @@ export class ScriptHost {
               this.healParty();
               if (config.onLose === 'blackout') this.sendToSafety();
             }
-            if (outcome === 'caught' && battle.caught && this.state.party.length < PARTY_LIMIT) {
-              this.state.party.push(battle.caught);
+            if (outcome === 'win') stats.battlesWon++;
+            if (outcome === 'caught' && battle.caught) {
+              stats.caught++;
+              if (this.state.party.length < PARTY_LIMIT) this.state.party.push(battle.caught);
             }
             this.game.setScene(new OverworldScene(this.game));
             resolve({ outcome, battle });
           },
+        }),
+      );
+    });
+  }
+
+  /** Show the end-of-demo screen; resolves when the player returns to the world. */
+  showEnding(): Promise<void> {
+    return new Promise((resolve) => {
+      this.game.setScene(
+        new EndScene(this.game, () => {
+          this.game.setScene(new OverworldScene(this.game));
+          resolve();
         }),
       );
     });

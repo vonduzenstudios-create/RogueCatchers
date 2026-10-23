@@ -1,6 +1,7 @@
 import { Texture } from 'pixi.js';
 import { Rng } from '../engine/rng';
 import { PALETTE } from './palette';
+import { ramp } from './color';
 import { PixelCanvas, bayer, outline } from './pixels';
 
 /** Dusk sky, stars and rolling hills for the title screen, all from a seed. */
@@ -94,4 +95,33 @@ export function drawCatchOrb(): PixelCanvas {
   pc.set(5, 4, '#fff3d6');
   outline(pc, PALETTE.ink);
   return pc;
+}
+
+/** The Basalt Badge: a faceted stone hexagon with a gold rim. */
+export function drawBadge(size = 24): PixelCanvas {
+  const c = new PixelCanvas(size, size);
+  const gold = ramp(42, 0.85, 0.5);
+  const stone = ramp(20, 0.25, 0.42);
+  const mid = (size - 1) / 2;
+  const r = size / 2 - 1;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = x - mid;
+      const dy = y - mid;
+      // Hexagon distance (pointy top).
+      const d = Math.max(Math.abs(dx) * 1.15, Math.abs(dx) * 0.58 + Math.abs(dy));
+      if (d > r) continue;
+      if (d > r - 2.2) {
+        const lit = dx + dy < 0;
+        c.set(x, y, gold[lit ? 2 : 0]);
+      } else {
+        // Facets: light from the top left, dithered at the seams.
+        const shade = -dx * 0.6 - dy + (bayer(x, y) - 0.5) * 3;
+        c.set(x, y, stone[shade > 2 ? 3 : shade > -1 ? 2 : shade > -4 ? 1 : 0]);
+      }
+    }
+  }
+  c.set(Math.round(mid - 3), Math.round(mid - 4), '#ffffff');
+  outline(c, '#1d1a26');
+  return c;
 }
