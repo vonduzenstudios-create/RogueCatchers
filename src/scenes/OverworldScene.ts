@@ -39,6 +39,8 @@ const MAP_MUSIC: Record<MapId, SongId> = {
   basaltHouseEast: 'town2',
   gym: 'gym',
 };
+/** Seconds between autosaves while exploring (also saved on every map change and after each script). */
+const AUTOSAVE_INTERVAL = 5;
 /** Seconds between bump sounds while walking into a wall. */
 const BUMP_INTERVAL = 0.3;
 
@@ -91,6 +93,7 @@ export class OverworldScene extends Scene implements WorldView {
   private bannerTime = 0;
   private waterSprites: Sprite[] = [];
   private lastBump = 0;
+  private saveTimer = 0;
   private waterTime = 0;
 
   private player!: Walker;
@@ -113,6 +116,11 @@ export class OverworldScene extends Scene implements WorldView {
   }
 
   update(dt: number): void {
+    this.saveTimer += dt;
+    if (this.saveTimer >= AUTOSAVE_INTERVAL) {
+      this.saveTimer = 0;
+      this.game.autosave();
+    }
     this.animateWater(dt);
     this.updateBanner(dt);
 
@@ -203,6 +211,7 @@ export class OverworldScene extends Scene implements WorldView {
     if (!this.map.indoor) this.showBanner(this.map.name);
     this.fade = { dir: 'in', t: 0 };
     this.drawOverlay(1);
+    this.game.autosave();
   }
 
   /** Create sprites for the NPCs whose story flags say they should be here. */
