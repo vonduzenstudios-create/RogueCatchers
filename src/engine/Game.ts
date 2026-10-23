@@ -1,5 +1,6 @@
 import { Application, TextureStyle } from 'pixi.js';
 import { type GameState, newGameState } from '../state/GameState';
+import { saveGame } from '../state/save';
 import type { WorldView } from '../world/script';
 import { Input } from './Input';
 import { Rng } from './rng';
@@ -37,6 +38,10 @@ export class Game {
     host.appendChild(this.app.canvas);
     this.fitToWindow();
     window.addEventListener('resize', () => this.fitToWindow());
+    window.addEventListener('pagehide', () => this.autosave());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.autosave();
+    });
 
     this.setScene(first(this));
     this.app.ticker.add((ticker) => {
@@ -45,6 +50,14 @@ export class Game {
       this.scene?.update(dt);
       this.input.endFrame();
     });
+  }
+
+  /**
+   * Save to the browser, but only from the overworld between scripts,
+   * so a save never lands halfway through a battle or a story beat.
+   */
+  autosave(): void {
+    if (this.world && !this.scriptRunning) saveGame(this.state);
   }
 
   setScene(next: Scene): void {

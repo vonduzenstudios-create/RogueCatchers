@@ -154,6 +154,7 @@ export async function runScript(game: Game, script: (host: ScriptHost) => Promis
     await script(new ScriptHost(game));
   } finally {
     game.scriptRunning = false;
+    game.autosave();
   }
 }
 

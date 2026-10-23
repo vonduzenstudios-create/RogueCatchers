@@ -13,7 +13,7 @@ npm run build    # production build in dist/
 
 Open `/gallery.html` (locally or on the live site) to see every generated monster, tile, building and character, and to play every song and sound effect.
 
-Controls: arrows or WASD to move, Enter/Space/Z to confirm or talk, Esc/X/Tab for the menu (or to go back). Menus also work with the mouse. M mutes the sound.
+Controls: arrows or WASD to move, Enter/Space/Z to confirm or talk, Esc/X/Tab for the menu (or to go back). Menus also work with the mouse. M mutes the sound. The game autosaves to your browser; pick Continue on the title screen to pick up where you left off.
 
 ## Layout
 
