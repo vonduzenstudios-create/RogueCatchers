@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RogueCatchers Art Gallery</title>
+    <style>
+      body { margin: 0; padding: 16px; background: #1b1f3b; color: #f4f1e8; font: 14px/1.4 system-ui, sans-serif; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      h2 { font-size: 16px; margin: 24px 0 8px; color: #ffd84a; }
+      p { margin: 0 0 8px; color: #c9c3d9; }
+      .row { display: flex; flex-wrap: wrap; gap: 12px; }
+      figure { margin: 0; padding: 8px; background: #2b2f5e; border-radius: 6px; text-align: center; }
+      figcaption { font-size: 12px; margin-top: 4px; }
+      canvas { image-rendering: pixelated; display: block; margin: 0 auto; }
+    </style>
+  </head>
+  <body>
+    <h1>RogueCatchers art gallery</h1>
+    <p>Every image on this page is generated in code at load time.</p>
+    <div id="gallery"></div>
+    <script type="module" src="/src/gallery.ts"></script>
+  </body>
+</html>

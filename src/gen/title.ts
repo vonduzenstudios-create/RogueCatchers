@@ -71,8 +71,13 @@ function ridge(pc: PixelCanvas, rng: Rng, base: number, amp: number, freq: numbe
   }
 }
 
-/** The game's Catch Orb, drawn at 16x16. */
+/** The game's Catch Orb as a texture. */
 export function catchOrb(): Texture {
+  return drawCatchOrb().toTexture();
+}
+
+/** The game's Catch Orb, drawn at 16x16. */
+export function drawCatchOrb(): PixelCanvas {
   const pc = new PixelCanvas(16, 16);
   const r = 6;
   for (let y = -r; y <= r; y++) {
@@ -88,5 +93,5 @@ export function catchOrb(): Texture {
   pc.set(8, 8, '#8fe3ff');
   pc.set(5, 4, '#fff3d6');
   outline(pc, PALETTE.ink);
-  return pc.toTexture();
+  return pc;
 }

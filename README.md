@@ -11,12 +11,15 @@ npm test         # unit tests
 npm run build    # production build in dist/
 ```
 
+Open `/gallery.html` (locally or on the live site) to see every generated monster, tile, building and character.
+
 Controls: arrows or WASD to move, Enter/Space/Z to confirm, Esc/X to go back.
 
 ## Layout
 
 - `src/engine/` game loop, scenes, input, seeded random numbers
-- `src/gen/` procedural generators (font, tiles, characters, title art)
+- `src/data/` monster species and types
+- `src/gen/` procedural generators (font, colours, monsters, tiles, buildings, characters, title art)
 - `src/scenes/` title screen and game screens
 - `tests/` Vitest unit tests
 
