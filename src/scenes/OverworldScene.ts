@@ -9,9 +9,12 @@ import { textSprite } from '../gen/font';
 import { PALETTE } from '../gen/palette';
 import { TILE, type TileKind, generateTileset } from '../gen/tiles';
 import { drawFrame } from '../gen/ui';
+import { ChoiceMenu } from '../ui/ChoiceMenu';
 import { DialogueBox } from '../ui/DialogueBox';
 import { buildingTiles, isWalkable } from '../world/collision';
+import { NPC_SCRIPTS, pauseMenu, rollEncounter, wildBattle } from '../world/events';
 import { WORLD } from '../world/maps';
+import { type WorldView, runScript } from '../world/script';
 import type { MapData, NpcDef, Warp } from '../world/types';
 
 /** Seconds to walk one tile. */
@@ -19,6 +22,8 @@ const STEP_TIME = 0.2;
 const FADE_TIME = 0.22;
 const BANNER_TIME = 2.2;
 const WATER_FRAME_TIME = 0.45;
+/** Chance per step in tall grass of meeting a wild monster. */
+const ENCOUNTER_CHANCE = 0.1;
 
 const DIRS: Record<Facing, [number, number]> = {
   up: [0, -1],
@@ -58,12 +63,13 @@ function characterTextures(outfit: Outfit): Record<Facing, Texture[]> {
  * Top-down exploration: walks the player around a map, handles
  * collisions, doors and edge warps, NPC and sign dialogue, and the camera.
  */
-export class OverworldScene extends Scene {
+export class OverworldScene extends Scene implements WorldView {
   private map!: MapData;
   private world = new Container();
   private entities = new Container();
   private overlay = new Graphics();
   private dialogue = new DialogueBox();
+  private menu = new ChoiceMenu();
   private banner: Sprite | null = null;
   private bannerTime = 0;
   private waterSprites: Sprite[] = [];
@@ -82,7 +88,9 @@ export class OverworldScene extends Scene {
     this.entities.sortableChildren = true;
     this.root.addChild(this.world);
     this.root.addChild(this.dialogue.root);
+    this.root.addChild(this.menu.root);
     this.root.addChild(this.overlay);
+    this.game.world = this;
     this.loadMap();
   }
 
@@ -94,6 +102,11 @@ export class OverworldScene extends Scene {
       this.updateFade(dt);
       return;
     }
+    if (this.menu.active) {
+      this.dialogue.update(dt, this.game.input);
+      this.menu.update(this.game.input);
+      return;
+    }
     if (this.dialogue.active) {
       this.dialogue.update(dt, this.game.input);
       return;
@@ -102,10 +115,18 @@ export class OverworldScene extends Scene {
       this.continueStep(dt);
       return;
     }
+    if (this.game.scriptRunning) {
+      this.setFrame(this.player, 0);
+      return;
+    }
 
     const input = this.game.input;
     if (input.wasPressed('confirm')) {
       this.interact();
+      return;
+    }
+    if (input.wasPressed('menu') || input.wasPressed('cancel')) {
+      void runScript(this.game, (host) => pauseMenu(host));
       return;
     }
     const dir = toFacing(input.heldDirection());
@@ -153,11 +174,7 @@ export class OverworldScene extends Scene {
       this.entities.addChild(sprite);
     }
 
-    this.npcs = this.map.npcs.map((def) => {
-      const npc: NpcRuntime = { ...this.makeWalker(characterTextures(def.outfit), def.x, def.y, def.facing), def };
-      this.placeWalker(npc, def.x, def.y);
-      return npc;
-    });
+    this.spawnNpcs();
 
     this.player = this.makeWalker(characterTextures(PLAYER_OUTFIT), state.x, state.y, state.facing);
     this.placeWalker(this.player, state.x, state.y);
@@ -167,6 +184,17 @@ export class OverworldScene extends Scene {
     if (!this.map.indoor) this.showBanner(this.map.name);
     this.fade = { dir: 'in', t: 0 };
     this.drawOverlay(1);
+  }
+
+  /** Create sprites for the NPCs whose story flags say they should be here. */
+  private spawnNpcs(): void {
+    const flags = this.game.state.flags;
+    const present = (d: NpcDef) => (!d.shownWhen || flags[d.shownWhen]) && !(d.hiddenWhen && flags[d.hiddenWhen]);
+    this.npcs = this.map.npcs.filter(present).map((def) => {
+      const npc: NpcRuntime = { ...this.makeWalker(characterTextures(def.outfit), def.x, def.y, def.facing), def };
+      this.placeWalker(npc, def.x, def.y);
+      return npc;
+    });
   }
 
   private makeWalker(frames: Record<Facing, Texture[]>, x: number, y: number, facing: Facing): Walker {
@@ -208,8 +236,36 @@ export class OverworldScene extends Scene {
     this.placeWalker(p, p.x, p.y);
     this.updateCamera(p.x, p.y);
     this.syncState();
+    const gate = this.map.gates.find((g) => g.x === p.x && g.y === p.y && !this.game.state.flags[g.flag]);
+    if (gate) {
+      void runScript(this.game, async (host) => {
+        await host.say(gate.lines, gate.speaker);
+        // Step back the way you came.
+        p.x = m.fromX;
+        p.y = m.fromY;
+        p.facing = OPPOSITE[p.facing];
+        this.placeWalker(p, p.x, p.y);
+        this.setFrame(p, 0);
+        this.updateCamera(p.x, p.y);
+        this.syncState();
+      });
+      return;
+    }
     const warp = this.map.warps.find((w) => w.x === p.x && w.y === p.y);
-    if (warp) this.fade = { dir: 'out', t: 0, warp };
+    if (warp) {
+      this.fade = { dir: 'out', t: 0, warp };
+      return;
+    }
+    this.maybeEncounter();
+  }
+
+  private maybeEncounter(): void {
+    const s = this.game.state;
+    const p = this.player;
+    if (this.map.tiles[p.y][p.x] !== 'tallGrass' || this.map.encounters.length === 0) return;
+    if (!s.party.some((m) => m.hp > 0) || !this.game.rng.chance(ENCOUNTER_CHANCE)) return;
+    const { species, level } = rollEncounter(this.map.encounters, this.game.rng);
+    void runScript(this.game, (host) => wildBattle(host, species, level));
   }
 
   private canEnter(x: number, y: number): boolean {
@@ -254,6 +310,11 @@ export class OverworldScene extends Scene {
     if (npc) {
       npc.facing = OPPOSITE[p.facing];
       this.setFrame(npc, 0);
+      const script = NPC_SCRIPTS[npc.def.id];
+      if (script) {
+        void runScript(this.game, (host) => script(host, npc.def));
+        return;
+      }
       this.dialogue.show(npc.def.lines, npc.def.name, () => {
         npc.facing = npc.def.facing;
         this.setFrame(npc, 0);
@@ -262,6 +323,41 @@ export class OverworldScene extends Scene {
     }
     const sign = this.map.signs.find((s) => s.x === p.x + dx && s.y === p.y + dy);
     if (sign) this.dialogue.show([sign.text]);
+  }
+
+  // ---- WorldView: what story scripts can do -----------------------------
+
+  say(lines: string[], speaker?: string): Promise<void> {
+    return new Promise((resolve) => this.dialogue.show(lines, speaker, resolve));
+  }
+
+  choose(prompt: string, options: string[]): Promise<number> {
+    return new Promise((resolve) => {
+      this.dialogue.show([prompt], undefined, () => {
+        const menuH = options.length * 12 + 12;
+        const w = Math.max(...options.map((o) => o.length)) * 6 + 28;
+        this.menu.open(
+          options.map((label, i) => ({
+            label,
+            onPick: () => {
+              this.dialogue.hide();
+              resolve(i);
+            },
+          })),
+          VIEW_WIDTH - w - 4,
+          VIEW_HEIGHT - 50 - menuH,
+          () => {
+            this.dialogue.hide();
+            resolve(-1);
+          },
+        );
+      }, { hold: true });
+    });
+  }
+
+  refresh(): void {
+    for (const npc of this.npcs) npc.sprite.destroy();
+    this.spawnNpcs();
   }
 
   // ---- Transitions, camera and effects ----------------------------------
@@ -335,6 +431,7 @@ export class OverworldScene extends Scene {
 
   exit(): void {
     this.banner = null;
+    if (this.game.world === this) this.game.world = null;
   }
 }
 

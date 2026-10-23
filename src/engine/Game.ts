@@ -1,6 +1,8 @@
 import { Application, TextureStyle } from 'pixi.js';
 import { type GameState, newGameState } from '../state/GameState';
+import type { WorldView } from '../world/script';
 import { Input } from './Input';
+import { Rng } from './rng';
 import type { Scene } from './Scene';
 
 /** Internal resolution in game pixels; the canvas is scaled up by whole numbers. */
@@ -14,6 +16,12 @@ export class Game {
   readonly app = new Application();
   readonly input = new Input();
   state: GameState = newGameState();
+  /** Random numbers for encounters and battles; varies every session. */
+  rng = new Rng(Date.now());
+  /** True while a story script is running, so the overworld ignores walking input. */
+  scriptRunning = false;
+  /** The overworld screen currently showing, if any. Story scripts talk to it. */
+  world: WorldView | null = null;
   private scene: Scene | null = null;
 
   async start(host: HTMLElement, first: (game: Game) => Scene): Promise<void> {
