@@ -11,19 +11,21 @@ npm test         # unit tests
 npm run build    # production build in dist/
 ```
 
-Open `/gallery.html` (locally or on the live site) to see every generated monster, tile, building and character.
+Open `/gallery.html` (locally or on the live site) to see every generated monster, tile, building and character, and to play every song and sound effect.
 
-Controls: arrows or WASD to move, Enter/Space/Z to confirm or talk, Esc/X/Tab for the menu (or to go back). Menus also work with the mouse.
+Controls: arrows or WASD to move, Enter/Space/Z to confirm or talk, Esc/X/Tab for the menu (or to go back). Menus also work with the mouse. M mutes the sound.
 
 ## Layout
 
 - `src/engine/` game loop, scenes, input, seeded random numbers
-- `src/data/` monster species and types
+- `src/data/` monster species, moves and types
+- `src/battle/` the turn-based battle rules
+- `src/audio/` chiptune songs (written as note strings), the Web Audio sequencer and synth sound effects
 - `src/gen/` procedural generators (font, colours, monsters, tiles, buildings, characters, title art)
-- `src/world/` map layouts (towns, route, interiors) and collision
-- `src/ui/` dialogue box and text helpers
+- `src/world/` map layouts (towns, route, interiors), collision, and the story scripts
+- `src/ui/` dialogue box, choice menus and text helpers
 - `src/state/` the saved game state
-- `src/scenes/` title screen and the overworld
+- `src/scenes/` title, overworld, starter pick, battle and ending screens
 - `tests/` Vitest unit tests
 
 Pushes to `main` build and deploy to GitHub Pages through `.github/workflows/deploy.yml`.

@@ -1,4 +1,5 @@
 import { Sprite } from 'pixi.js';
+import { audio } from '../audio';
 import { Scene } from '../engine/Scene';
 import { VIEW_HEIGHT, VIEW_WIDTH } from '../engine/Game';
 import { textSprite } from '../gen/font';
@@ -13,6 +14,7 @@ export class TitleScene extends Scene {
   private orb!: Sprite;
 
   enter(): void {
+    audio.music('title');
     this.root.addChild(new Sprite(titleBackdrop(VIEW_WIDTH, VIEW_HEIGHT)));
 
     const title = textSprite('RogueCatchers', {
@@ -45,6 +47,7 @@ export class TitleScene extends Scene {
     this.orb.rotation = Math.sin(this.time * 1.5) * 0.15;
 
     if (this.game.input.wasPressed('confirm')) {
+      audio.sfx('confirm');
       this.game.state = newGameState();
       this.game.setScene(new OverworldScene(this.game));
     }

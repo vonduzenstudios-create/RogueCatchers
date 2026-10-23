@@ -1,3 +1,6 @@
+import { audio } from './audio';
+import { SONGS, type SongId } from './audio/music';
+import { SFX, type SfxId } from './audio/sfx';
 import { SPECIES, SPECIES_ORDER } from './data/species';
 import { drawBuilding } from './gen/buildings';
 import {
@@ -79,3 +82,25 @@ for (const [name, outfit] of cast) {
 
 const items = section('Items');
 figure(items, 'Catch Orb', [drawCatchOrb()], 4);
+
+// ---- Sound test -------------------------------------------------------------
+
+function button(row: HTMLElement, label: string, onClick: () => void): void {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.style.cssText = 'font: inherit; padding: 4px 10px; cursor: pointer;';
+  b.addEventListener('click', () => {
+    audio.unlock();
+    onClick();
+  });
+  row.appendChild(b);
+}
+
+const songs = section('Music');
+for (const id of Object.keys(SONGS) as SongId[]) {
+  button(songs, id, () => (SONGS[id].loop ? audio.music(id) : audio.jingle(id)));
+}
+button(songs, 'stop', () => audio.music(null));
+
+const sounds = section('Sound effects');
+for (const id of Object.keys(SFX) as SfxId[]) button(sounds, id, () => audio.sfx(id));

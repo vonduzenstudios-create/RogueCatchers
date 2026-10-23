@@ -1,3 +1,4 @@
+import { audio } from './audio';
 import { Battle } from './battle/Battle';
 import { createMonster } from './battle/monster';
 import type { SpeciesId } from './data/species';
@@ -11,12 +12,14 @@ const host = document.getElementById('game');
 if (!host) throw new Error('Missing #game element');
 
 const game = new Game();
+audio.attach();
 void game.start(host, (g) => new TitleScene(g));
 
 // Handy for debugging and automated play-tests in development builds.
 if (import.meta.env.DEV) {
   Object.assign(window, {
     game,
+    audio,
     /** Start a battle from the browser console, e.g. testBattle('splashell', 'zapkit'). */
     testBattle(mine: SpeciesId = 'splashell', foe: SpeciesId = 'zapkit', trainerName?: string) {
       const s = game.state;

@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
+import { audio } from '../audio';
 import { Battle, type BattleEvent, type Outcome, type Side } from '../battle/Battle';
 import { type Monster, statsOf, xpForLevel } from '../battle/monster';
 import { MOVES } from '../data/moves';
@@ -107,6 +108,8 @@ export class BattleScene extends Scene {
     this.root.addChild(this.dialogue.root);
     this.root.addChild(this.menu);
 
+    const trainer = this.battle.trainerName;
+    audio.music(!trainer ? 'battle' : trainer.startsWith('Leader') ? 'leader' : 'trainer');
     this.play(this.battle.intro());
   }
 
@@ -150,24 +153,31 @@ export class BattleScene extends Scene {
         this.dialogue.show([e.text], undefined, undefined, { autoAdvance: TEXT_AUTO });
         break;
       case 'attack':
+        if (MOVES[e.move].power > 0) audio.sfx('attack');
         this.task = this.attackTask(e.side, TYPE_COLORS[MOVES[e.move].type], MOVES[e.move].power > 0);
         break;
       case 'hit':
+        audio.sfx(e.effectiveness > 1 || e.crit ? 'hitSuper' : e.effectiveness < 1 ? 'hitWeak' : 'hit');
         this.task = sequence(this.blinkTask(e.side), this.hpTask(e.side, e.hp));
         break;
       case 'statusDamage':
+        audio.sfx('hitWeak');
         this.task = sequence(this.blinkTask(e.side), this.hpTask(e.side, e.hp));
         break;
       case 'heal':
+        audio.sfx('potion');
         this.task = this.hpTask(e.side, e.hp);
         break;
       case 'status':
         this.boxOf(e.side).setStatus(e.status);
         break;
       case 'stat':
+        audio.sfx(e.stages > 0 ? 'statUp' : 'statDown');
         this.task = this.statTask(e.side, e.stages > 0);
         break;
       case 'faint':
+        audio.sfx('faint');
+        if (e.side === 'foe' && this.battle.foe.party.every((m) => m.hp <= 0)) audio.music('victory');
         this.task = this.faintTask(e.side);
         break;
       case 'sendOut':
@@ -179,18 +189,23 @@ export class BattleScene extends Scene {
         this.task = this.xpTask();
         break;
       case 'levelUp':
+        audio.sfx('levelUp');
         this.playerBox.set(this.battle.activeOf('player'));
         break;
       case 'throwOrb':
+        audio.sfx('throw');
         this.task = this.throwTask();
         break;
       case 'shake':
+        audio.sfx('shake');
         this.task = this.shakeTask();
         break;
       case 'breakFree':
+        audio.sfx('breakFree');
         this.task = this.breakFreeTask();
         break;
       case 'caught':
+        audio.music('victory');
         this.task = this.caughtTask();
         break;
       case 'end':
@@ -352,10 +367,14 @@ export class BattleScene extends Scene {
     if (input.wasPressed('down')) go(cols);
     if (cols > 1 && input.wasPressed('left') && this.cursor % cols > 0) go(-1);
     if (cols > 1 && input.wasPressed('right') && this.cursor % cols < cols - 1) go(1);
-    if (moved) this.renderMenu();
+    if (moved) {
+      audio.sfx('cursor');
+      this.renderMenu();
+    }
 
     if (input.wasPressed('confirm')) this.pick();
     else if (input.wasPressed('cancel') && this.mode !== 'action' && !(this.mode === 'party' && this.battle.needsSwitch)) {
+      audio.sfx('cancel');
       this.closeMenu();
       this.openActions();
     }
@@ -363,7 +382,9 @@ export class BattleScene extends Scene {
 
   private pick(): void {
     const option = this.options[this.cursor];
-    if (option?.enabled) option.onPick();
+    if (!option?.enabled) return;
+    audio.sfx('confirm');
+    option.onPick();
   }
 
   // ---- Sprites and animation --------------------------------------------

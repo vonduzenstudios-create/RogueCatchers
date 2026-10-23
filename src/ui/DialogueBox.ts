@@ -1,3 +1,4 @@
+import { audio } from '../audio';
 import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import { VIEW_HEIGHT, VIEW_WIDTH } from '../engine/Game';
 import type { Input } from '../engine/Input';
@@ -109,6 +110,7 @@ export class DialogueBox {
     const timedOut = this.autoAdvance !== null && done && this.idle >= this.autoAdvance;
     if (timedOut || input.wasPressed('confirm') || input.wasPressed('cancel')) {
       this.idle = 0;
+      if (!timedOut && done) audio.sfx('text');
       if (!done) {
         this.revealed = total;
       } else if (this.page < this.pages.length - 1) {

@@ -1,4 +1,5 @@
 import { Sprite } from 'pixi.js';
+import { audio } from '../audio';
 import type { Game } from '../engine/Game';
 import { VIEW_HEIGHT, VIEW_WIDTH } from '../engine/Game';
 import { Scene } from '../engine/Scene';
@@ -30,6 +31,7 @@ export class EndScene extends Scene {
   }
 
   enter(): void {
+    audio.music('title');
     this.root.addChild(new Sprite(titleBackdrop(VIEW_WIDTH, VIEW_HEIGHT, 'ending')));
     const center = (s: Sprite, y: number) => {
       s.position.set(Math.floor((VIEW_WIDTH - s.width) / 2), y);

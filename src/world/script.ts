@@ -3,6 +3,7 @@ import { type Monster, heal } from '../battle/monster';
 import { SPECIES, type SpeciesId } from '../data/species';
 import type { Game } from '../engine/Game';
 import type { Arena } from '../gen/battleArt';
+import { audio, type SongId } from '../audio';
 import { BattleScene } from '../scenes/BattleScene';
 import { EndScene } from '../scenes/EndScene';
 import { OverworldScene } from '../scenes/OverworldScene';
@@ -81,6 +82,7 @@ export class ScriptHost {
   }
 
   battle(config: BattleConfig): Promise<{ outcome: Outcome; battle: Battle }> {
+    audio.sfx('encounter');
     const stats = this.state.stats;
     for (const m of config.foe) if (!stats.seen.includes(m.species)) stats.seen.push(m.species);
     const battle = new Battle({
@@ -110,6 +112,13 @@ export class ScriptHost {
         }),
       );
     });
+  }
+
+  /** Play a short tune over the music and wait for it to finish. */
+  jingle(id: SongId): Promise<void> {
+    audio.jingle(id);
+    const wait = audio.jingleRemaining;
+    return new Promise((resolve) => setTimeout(resolve, wait * 1000));
   }
 
   /** Show the end-of-demo screen; resolves when the player returns to the world. */

@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
+import { audio, type SongId } from '../audio';
 import { VIEW_HEIGHT, VIEW_WIDTH } from '../engine/Game';
 import type { Action } from '../engine/Input';
 import { hashString } from '../engine/rng';
@@ -15,7 +16,7 @@ import { buildingTiles, isWalkable } from '../world/collision';
 import { GATE_SCRIPTS, NPC_SCRIPTS, pauseMenu, rollEncounter, wildBattle } from '../world/events';
 import { WORLD } from '../world/maps';
 import { type WorldView, runScript } from '../world/script';
-import type { MapData, NpcDef, Warp } from '../world/types';
+import type { MapData, MapId, NpcDef, Warp } from '../world/types';
 
 /** Seconds to walk one tile. */
 const STEP_TIME = 0.2;
@@ -24,6 +25,22 @@ const BANNER_TIME = 2.2;
 const WATER_FRAME_TIME = 0.45;
 /** Chance per step in tall grass of meeting a wild monster. */
 const ENCOUNTER_CHANCE = 0.1;
+
+const MAP_MUSIC: Record<MapId, SongId> = {
+  emberHollow: 'town',
+  playerHouse: 'town',
+  emberHouse: 'town',
+  lab: 'town',
+  hospital: 'town',
+  market: 'town',
+  mosswayTrail: 'route',
+  basaltRidge: 'town2',
+  basaltHouseWest: 'town2',
+  basaltHouseEast: 'town2',
+  gym: 'gym',
+};
+/** Seconds between bump sounds while walking into a wall. */
+const BUMP_INTERVAL = 0.3;
 
 const DIRS: Record<Facing, [number, number]> = {
   up: [0, -1],
@@ -73,6 +90,7 @@ export class OverworldScene extends Scene implements WorldView {
   private banner: Sprite | null = null;
   private bannerTime = 0;
   private waterSprites: Sprite[] = [];
+  private lastBump = 0;
   private waterTime = 0;
 
   private player!: Walker;
@@ -181,6 +199,7 @@ export class OverworldScene extends Scene implements WorldView {
     this.world.addChild(this.entities);
     this.updateCamera(state.x, state.y);
 
+    audio.music(MAP_MUSIC[this.map.id]);
     if (!this.map.indoor) this.showBanner(this.map.name);
     this.fade = { dir: 'in', t: 0 };
     this.drawOverlay(1);
@@ -214,6 +233,11 @@ export class OverworldScene extends Scene implements WorldView {
     const ny = p.y + dy;
     if (!this.canEnter(nx, ny)) {
       this.setFrame(p, 0);
+      const now = performance.now() / 1000;
+      if (now - this.lastBump > BUMP_INTERVAL) {
+        this.lastBump = now;
+        audio.sfx('bump');
+      }
       return;
     }
     this.moving = { fromX: p.x, fromY: p.y, t: 0 };
@@ -255,6 +279,7 @@ export class OverworldScene extends Scene implements WorldView {
     }
     const warp = this.map.warps.find((w) => w.x === p.x && w.y === p.y);
     if (warp) {
+      if (this.map.indoor || WORLD[warp.to].indoor) audio.sfx('door');
       this.fade = { dir: 'out', t: 0, warp };
       return;
     }
