@@ -34,8 +34,14 @@ const STYLES: Record<Exclude<BuildingKind, 'house'>, Style> = {
   gym: { w: 6, h: 4, roof: [24, 0.12, 0.42], wall: [30, 0.15, 0.68], sign: 'GYM', emblem: 'badge' },
 };
 
+/** Footprint of a building kind in tiles, without drawing it. */
+export function buildingSize(kind: BuildingKind): { widthTiles: number; heightTiles: number; doorTile: number } {
+  const style = kind === 'house' ? { w: 4, h: 3 } : STYLES[kind];
+  return { widthTiles: style.w, heightTiles: style.h, doorTile: Math.floor(style.w / 2) };
+}
+
 /** Draw a building from code: shingled roof, plank walls, windows, a door and a sign. */
-export function drawBuilding(kind: BuildingKind, seed = kind): Building {
+export function drawBuilding(kind: BuildingKind, seed: string = kind): Building {
   const rng = new Rng(`building-${seed}`);
   const style: Style =
     kind === 'house'

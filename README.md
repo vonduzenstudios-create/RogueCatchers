@@ -20,7 +20,10 @@ Controls: arrows or WASD to move, Enter/Space/Z to confirm, Esc/X to go back.
 - `src/engine/` game loop, scenes, input, seeded random numbers
 - `src/data/` monster species and types
 - `src/gen/` procedural generators (font, colours, monsters, tiles, buildings, characters, title art)
-- `src/scenes/` title screen and game screens
+- `src/world/` map layouts (towns, route, interiors) and collision
+- `src/ui/` dialogue box and text helpers
+- `src/state/` the saved game state
+- `src/scenes/` title screen and the overworld
 - `tests/` Vitest unit tests
 
 Pushes to `main` build and deploy to GitHub Pages through `.github/workflows/deploy.yml`.

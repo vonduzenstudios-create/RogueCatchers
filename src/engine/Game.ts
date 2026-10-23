@@ -1,4 +1,5 @@
 import { Application, TextureStyle } from 'pixi.js';
+import { type GameState, newGameState } from '../state/GameState';
 import { Input } from './Input';
 import type { Scene } from './Scene';
 
@@ -12,6 +13,7 @@ const MAX_DT = 1 / 20;
 export class Game {
   readonly app = new Application();
   readonly input = new Input();
+  state: GameState = newGameState();
   private scene: Scene | null = null;
 
   async start(host: HTMLElement, first: (game: Game) => Scene): Promise<void> {

@@ -4,7 +4,8 @@ import { VIEW_HEIGHT, VIEW_WIDTH } from '../engine/Game';
 import { textSprite } from '../gen/font';
 import { PALETTE } from '../gen/palette';
 import { catchOrb, titleBackdrop } from '../gen/title';
-import { SandboxScene } from './SandboxScene';
+import { newGameState } from '../state/GameState';
+import { OverworldScene } from './OverworldScene';
 
 export class TitleScene extends Scene {
   private time = 0;
@@ -43,6 +44,9 @@ export class TitleScene extends Scene {
     this.orb.y = 92 + Math.round(Math.sin(this.time * 3) * 2);
     this.orb.rotation = Math.sin(this.time * 1.5) * 0.15;
 
-    if (this.game.input.wasPressed('confirm')) this.game.setScene(new SandboxScene(this.game));
+    if (this.game.input.wasPressed('confirm')) {
+      this.game.state = newGameState();
+      this.game.setScene(new OverworldScene(this.game));
+    }
   }
 }
